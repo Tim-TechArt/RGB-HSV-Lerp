@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Interpolation — RGB vs HSV</title>
+    <link rel="stylesheet" href="styles/style.css">
+</head>
+<body>
+    <div class="header">
+        <h1 class="title">RGB vs Hue Interpolation</h1>
+        <p class="subtitle">Blending along lines and arcs - Two different ways to get from A to B</p>
+    </div>
+    <div class="container">
+
+        <div class="wheels-container">
+            <div class="wheel-card">
+                <h2 class="wheel-title rgb">RGB Lerp</h2>
+                <div class="canvas-container">
+                    <canvas id="rgbCanvas" width="800" height="800"></canvas>
+                </div>
+                <div class="color-result">
+                    <div class="color-swatch" id="rgbSwatch"></div>
+                    <div class="color-info">
+                        <div class="label">Current Color</div>
+                        <div id="rgbValue">rgb(255, 0, 0)</div>
+                        <div class="hsv" id="rgbValueHsv">hsv(0, 100%, 100%)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="wheel-card">
+                <h2 class="wheel-title hsv">Hue Lerp</h2>
+                <div class="canvas-container">
+                    <canvas id="hsvCanvas" width="800" height="800"></canvas>
+                </div>
+                <div class="color-result">
+                    <div class="color-swatch" id="hsvSwatch"></div>
+                    <div class="color-info">
+                        <div class="label">Current Color</div>
+                        <div id="hsvValue">rgb(255, 0, 0)</div>
+                        <div class="hsv" id="hsvValueHsv">hsv(0, 100%, 100%)</div>
+                    </div>
+                </div>
+                <div class="hue-direction-controls">
+                    <label><input type="radio" name="hueDirection" value="shortest" checked> Shortest</label>
+                    <label><input type="radio" name="hueDirection" value="clockwise"> Clockwise</label>
+                    <label><input type="radio" name="hueDirection" value="counter"> Counter-clockwise</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="interpolation-row">
+                <div class="color-endpoint color-endpoint-a">
+                    <div class="endpoint-swatch" id="swatchA"></div>
+                    <div class="endpoint-info">
+                        <div class="endpoint-label">Color A</div>
+                        <div class="endpoint-value" id="rgbA">rgb(255, 0, 0)</div>
+                        <div class="endpoint-value hsv" id="hsvA">hsv(0, 100%, 100%)</div>
+                    </div>
+                </div>
+
+                <div class="slider-container">
+                    <div class="slider-value" id="tValue">0.50</div>
+                    <input type="range" id="tSlider" min="0" max="1" step="0.01" value="0.5">
+                </div>
+
+                <div class="color-endpoint color-endpoint-b">
+                    <div class="endpoint-swatch" id="swatchB"></div>
+                    <div class="endpoint-info">
+                        <div class="endpoint-label">Color B</div>
+                        <div class="endpoint-value" id="rgbB">rgb(0, 255, 255)</div>
+                        <div class="endpoint-value hsv" id="hsvB">hsv(180, 100%, 100%)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="description" style="margin-top: 20px;">
+                <p style="text-align: center; color: var(--teal-bright);"><strong>Tip:</strong> Drag the white-ringed dots on the color wheels above to adjust colors A and B</p>
+            </div>
+
+            <div class="description">
+                <p><strong>RGB interpolation</strong> draws a straight line through the color cube, often passing through desaturated (muddy) colors in the middle.</p>
+                <p style="margin-top: 8px;"><strong>HSV interpolation</strong> travels around the color wheel, keeping saturation and brightness consistent — resulting in more vibrant transitions.</p>
+            </div>
+        </div>
+
+        <div class="cube-section">
+            <div class="cube-card">
+                <h2 class="wheel-title">RGB Color Cube</h2>
+                <p class="cube-subtitle">See the straight-line path in 3D space</p>
+                <div class="cube-canvas-container">
+                    <canvas id="cubeCanvas" width="600" height="600"></canvas>
+                </div>
+                <p class="cube-hint">Drag to rotate</p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <h3>About</h3>
+            <p>RGB and Hue interpolation are two ways to blend between colors. RGB takes a straight line through the color cube — fast but often muddy. Hue interpolation travels around the color wheel, preserving saturation for vibrant gradients.</p>
+            <p class="small"> • Built with WebGL & Vanilla JS • </p>
+            <p class="small"><a href="https://github.com/Tim-TechArt/Color-Interpolation">github.com/Tim-TechArt/Color-Interpolation</a></p>
+            <p class="small">Tim-TechArt</p>
+        </div>
+    </div>
+
+    <script src="scripts/script.js"></script>
+</body>
+</html>
