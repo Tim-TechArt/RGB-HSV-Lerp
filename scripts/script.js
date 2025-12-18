@@ -1508,7 +1508,7 @@ document.addEventListener('touchmove', (e) => {
         lastCubeMouseX = e.touches[0].clientX;
         lastCubeMouseY = e.touches[0].clientY;
         renderCube();
-    } else if (e.touches.length === 2) {
+    } else if (e.touches.length === 2 && lastPinchDistance > 0) {
         const currentDistance = getPinchDistance(e.touches);
         const delta = lastPinchDistance - currentDistance;
         const zoomSpeed = 0.02;
@@ -1609,9 +1609,9 @@ function initCylinder() {
 
             if (v_hasGlow > 0.5) {
                 float ringCenter = 0.42;
-                float ringWidth = 0.08;
+                float ringWidth = 0.15;
                 float glowStrength = 1.0 - smoothstep(0.0, ringWidth, abs(dist - ringCenter));
-                glowStrength *= 0.5;
+                glowStrength *= 0.85;
                 finalColor = mix(v_color, vec3(1.0), glowStrength);
             }
 
@@ -1972,11 +1972,11 @@ function renderCylinder() {
     const pointGlowLoc = gl.getAttribLocation(cylinderPointProgram, 'a_hasGlow');
     const pointMatrixLoc = gl.getUniformLocation(cylinderPointProgram, 'u_matrix');
 
-    // Points A and B
+    // Points A and B (with glow to stand out on colorful surface)
     const pointsAB_Positions = [...posA, ...posB];
     const pointsAB_Colors = [...rgbA, ...rgbB];
     const pointsAB_Sizes = [20.0 * dpr, 20.0 * dpr];
-    const pointsAB_Glows = [0.0, 0.0];
+    const pointsAB_Glows = [1.0, 1.0];
 
     const abPosBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, abPosBuffer);
