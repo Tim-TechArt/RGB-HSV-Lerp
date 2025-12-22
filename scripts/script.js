@@ -142,8 +142,6 @@ const fragmentShaderSource = `
     uniform float u_t;
     uniform int u_mode;
     uniform int u_hueDirection; // 0=shortest, 1=clockwise, 2=counter-clockwise
-    uniform sampler2D u_letterA;
-    uniform sampler2D u_letterB;
 
     #define PI 3.14159265359
 
@@ -166,7 +164,7 @@ const fragmentShaderSource = `
     void main() {
         vec2 uv = v_uv * 2.0 - 1.0;
         float dist = length(uv);
-        float angle = atan(uv.y, uv.x) / (2.0 * PI) + 0.5;
+        float angle = fract(0.25 - atan(uv.y, uv.x) / (2.0 * PI));
 
         // Scale wheel down to leave room for dots at edges
         float wheelScale = 0.85;
@@ -177,9 +175,9 @@ const fragmentShaderSource = `
         vec3 hsvA = rgb2hsv(u_colorA);
         vec3 hsvB = rgb2hsv(u_colorB);
 
-        // Scale dot positions to match wheel
-        vec2 posA = vec2(cos((hsvA.x - 0.5) * 2.0 * PI), sin((hsvA.x - 0.5) * 2.0 * PI)) * hsvA.y * wheelScale;
-        vec2 posB = vec2(cos((hsvB.x - 0.5) * 2.0 * PI), sin((hsvB.x - 0.5) * 2.0 * PI)) * hsvB.y * wheelScale;
+        // Scale dot positions to match wheel (clockwise)
+        vec2 posA = vec2(cos((0.25 - hsvA.x) * 2.0 * PI), sin((0.25 - hsvA.x) * 2.0 * PI)) * hsvA.y * wheelScale;
+        vec2 posB = vec2(cos((0.25 - hsvB.x) * 2.0 * PI), sin((0.25 - hsvB.x) * 2.0 * PI)) * hsvB.y * wheelScale;
 
         float pathWidth = 0.04;
         vec3 pathColor = vec3(0.0);
@@ -307,7 +305,7 @@ const fragmentShaderSource = `
             float h = mod(mix(hueA2, hueB2, u_t), 1.0);
             float s = mix(hsvA.y, hsvB.y, u_t);
             float v = mix(hsvA.z, hsvB.z, u_t);
-            posT = vec2(cos((h - 0.5) * 2.0 * PI), sin((h - 0.5) * 2.0 * PI)) * s * wheelScale;
+            posT = vec2(cos((0.25 - h) * 2.0 * PI), sin((0.25 - h) * 2.0 * PI)) * s * wheelScale;
             colorT = hsv2rgb(vec3(h, s, v));
         }
 
@@ -324,26 +322,11 @@ const fragmentShaderSource = `
         // Apply main path on top
         finalColor = mix(finalColor, pathColor, pathAlpha * 0.95);
 
-        // Sample letter textures - centered
-        float letterScale = 1.25;
-        vec2 letterUVA = (uv - posA) / (dotRadius * letterScale);
-        letterUVA = letterUVA * 0.5 + 0.5;
-        letterUVA.y = 1.0 - letterUVA.y;
-
-        vec2 letterUVB = (uv - posB) / (dotRadius * letterScale);
-        letterUVB = letterUVB * 0.5 + 0.5;
-        letterUVB.y = 1.0 - letterUVB.y;
-
-        float letterA = texture2D(u_letterA, letterUVA).a;
-        float letterB = texture2D(u_letterB, letterUVB).a;
-
         finalColor = mix(finalColor, vec3(1.0), dotABorder);
         finalColor = mix(finalColor, u_colorA, dotAMask);
-        finalColor = mix(finalColor, vec3(0.0), letterA * dotAMask);
 
         finalColor = mix(finalColor, vec3(1.0), dotBBorder);
         finalColor = mix(finalColor, u_colorB, dotBMask);
-        finalColor = mix(finalColor, vec3(0.0), letterB * dotBMask);
 
         finalColor = mix(finalColor, vec3(1.0), dotTBorder);
         finalColor = mix(finalColor, colorT, dotTMask);
@@ -400,60 +383,24 @@ function setupWebGL(canvas, mode) {
 
     const positionLocation = gl.getAttribLocation(program, 'a_position');
 
-    // Create letter textures
-    const letterATexture = createLetterTexture(gl, 'A');
-    const letterBTexture = createLetterTexture(gl, 'B');
-
     return {
         gl,
         program,
         positionBuffer,
         positionLocation,
-        letterATexture,
-        letterBTexture,
         uniforms: {
             colorA: gl.getUniformLocation(program, 'u_colorA'),
             colorB: gl.getUniformLocation(program, 'u_colorB'),
             t: gl.getUniformLocation(program, 'u_t'),
             mode: gl.getUniformLocation(program, 'u_mode'),
             hueDirection: gl.getUniformLocation(program, 'u_hueDirection'),
-            letterA: gl.getUniformLocation(program, 'u_letterA'),
-            letterB: gl.getUniformLocation(program, 'u_letterB'),
         },
         mode
     };
 }
 
-function createLetterTexture(gl, letter) {
-    const canvas = document.createElement('canvas');
-    canvas.width = 64;
-    canvas.height = 64;
-    const ctx = canvas.getContext('2d');
-
-    // Clear with transparent background
-    ctx.clearRect(0, 0, 64, 64);
-
-    // Draw letter - using Space Grotesk to match design system
-    ctx.fillStyle = 'white';
-    ctx.font = '600 34px "Space Grotesk", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(letter, 32, 32);
-
-    // Create WebGL texture
-    const texture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-
-    return texture;
-}
-
 function render(ctx, colorA, colorB, t) {
-    const { gl, program, positionBuffer, positionLocation, uniforms, mode, letterATexture, letterBTexture } = ctx;
+    const { gl, program, positionBuffer, positionLocation, uniforms, mode } = ctx;
 
     const rect = gl.canvas.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
@@ -466,15 +413,6 @@ function render(ctx, colorA, colorB, t) {
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
     gl.enableVertexAttribArray(positionLocation);
     gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
-
-    // Bind letter textures
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, letterATexture);
-    gl.uniform1i(uniforms.letterA, 0);
-
-    gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, letterBTexture);
-    gl.uniform1i(uniforms.letterB, 1);
 
     gl.uniform3f(uniforms.colorA, colorA[0] / 255, colorA[1] / 255, colorA[2] / 255);
     gl.uniform3f(uniforms.colorB, colorB[0] / 255, colorB[1] / 255, colorB[2] / 255);
@@ -568,8 +506,9 @@ function getColorFromCanvas(canvas, event) {
     const dist = Math.sqrt(x * x + y * y);
     if (dist > WHEEL_SCALE) return null;
 
-    const angle = Math.atan2(y, x) / (2 * Math.PI) + 0.5;
-    const hue = angle;
+    let hue = 0.25 - Math.atan2(y, x) / (2 * Math.PI);
+    if (hue < 0) hue += 1;
+    if (hue >= 1) hue -= 1;
     const sat = Math.min(dist / WHEEL_SCALE, 1);
 
     return hsv2rgb(hue, sat, 1);
@@ -580,13 +519,13 @@ function getDotPositions(mode) {
     const [hA, sA] = rgb2hsv(colorA[0], colorA[1], colorA[2]);
     const [hB, sB] = rgb2hsv(colorB[0], colorB[1], colorB[2]);
 
-    const angleA = (hA - 0.5) * 2 * Math.PI;
+    const angleA = (0.25 - hA) * 2 * Math.PI;
     const posA = {
         x: Math.cos(angleA) * sA * WHEEL_SCALE,
         y: Math.sin(angleA) * sA * WHEEL_SCALE
     };
 
-    const angleB = (hB - 0.5) * 2 * Math.PI;
+    const angleB = (0.25 - hB) * 2 * Math.PI;
     const posB = {
         x: Math.cos(angleB) * sB * WHEEL_SCALE,
         y: Math.sin(angleB) * sB * WHEEL_SCALE
@@ -616,7 +555,7 @@ function getDotPositions(mode) {
 
         const h = ((hueA + (hueB - hueA) * t) % 1 + 1) % 1;
         const s = sA + (sB - sA) * t;
-        const angleT = (h - 0.5) * 2 * Math.PI;
+        const angleT = (0.25 - h) * 2 * Math.PI;
         posT = {
             x: Math.cos(angleT) * s * WHEEL_SCALE,
             y: Math.sin(angleT) * s * WHEEL_SCALE
@@ -692,8 +631,9 @@ function getTFromPosition(canvas, event) {
             if (hueB <= hueA) hueB += 1;
         }
 
-        const angle = Math.atan2(y, x) / (2 * Math.PI) + 0.5;
-        let pointHue = angle;
+        let pointHue = 0.25 - Math.atan2(y, x) / (2 * Math.PI);
+        if (pointHue < 0) pointHue += 1;
+        if (pointHue >= 1) pointHue -= 1;
 
         // Handle wraparound
         const minH = Math.min(hueA, hueB);
@@ -878,8 +818,9 @@ update();
 
 const cubeCanvas = document.getElementById('cubeCanvas');
 let cubeGl, cubeProgram, cubePointProgram, cubeSolidProgram;
-let cubeRotationX = -3.13;
-let cubeRotationY = 2.21;
+let cubeRotationX = 2.66;
+let cubeRotationY = -3.14;
+let cubeRotationZ = 0;
 let cubeZoom = 2.91; // Camera distance (smaller = closer)
 const ZOOM_MIN = 2.0;
 const ZOOM_MAX = 8.0;
@@ -1239,11 +1180,13 @@ function renderCube() {
     const view = translationMatrix(0, 0, -cubeZoom);
     const rotX = rotationXMatrix(cubeRotationX);
     const rotY = rotationYMatrix(cubeRotationY);
+    const rotZ = rotationZMatrix(cubeRotationZ);
     const center = translationMatrix(-0.5, -0.5, -0.5);
 
     let matrix = multiplyMatrices(proj, view);
     matrix = multiplyMatrices(matrix, rotY);
     matrix = multiplyMatrices(matrix, rotX);
+    matrix = multiplyMatrices(matrix, rotZ);
     matrix = multiplyMatrices(matrix, center);
 
     // Get colors A and B as RGB 0-1
@@ -1391,7 +1334,7 @@ function renderCube() {
     const pointsAB_Positions = [...rgbA, ...rgbB];
     const pointsAB_Colors = [...rgbA, ...rgbB];
     const pointsAB_Sizes = [20.0 * dpr, 20.0 * dpr];
-    const pointsAB_Glows = [0.0, 0.0];
+    const pointsAB_Glows = [1.0, 1.0];
 
     const abPosBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, abPosBuffer);
@@ -1442,6 +1385,7 @@ function renderCube() {
     gl.vertexAttribPointer(pointGlowLoc, 1, gl.FLOAT, false, 0, 0);
 
     gl.drawArrays(gl.POINTS, 0, 1);
+
 }
 
 // Cube mouse/touch rotation handlers
@@ -1460,6 +1404,8 @@ document.addEventListener('mousemove', (e) => {
         cubeRotationX += dy * 0.01;
         lastCubeMouseX = e.clientX;
         lastCubeMouseY = e.clientY;
+        document.getElementById('cubeRotX').value = cubeRotationX;
+        document.getElementById('cubeRotY').value = cubeRotationY;
         renderCube();
     }
 });
@@ -1507,6 +1453,8 @@ document.addEventListener('touchmove', (e) => {
         cubeRotationX += dy * 0.01;
         lastCubeMouseX = e.touches[0].clientX;
         lastCubeMouseY = e.touches[0].clientY;
+        document.getElementById('cubeRotX').value = cubeRotationX;
+        document.getElementById('cubeRotY').value = cubeRotationY;
         renderCube();
     } else if (e.touches.length === 2 && lastPinchDistance > 0) {
         const currentDistance = getPinchDistance(e.touches);
@@ -1545,9 +1493,10 @@ renderCube();
 
 const cylinderCanvas = document.getElementById('cylinderCanvas');
 let cylinderGl, cylinderProgram, cylinderPointProgram, cylinderSolidProgram;
-let cylinderRotationX = -0.5;
-let cylinderRotationY = 0.8;
-let cylinderZoom = 3.5;
+let cylinderRotationX = 1.01;
+let cylinderRotationY = 0;
+let cylinderRotationZ = 0;
+let cylinderZoom = 2.5;
 let isDraggingCylinder = false;
 let lastCylinderMouseX, lastCylinderMouseY;
 let lastCylinderPinchDistance = 0;
@@ -1631,7 +1580,7 @@ function initCylinder() {
 
             // Convert cylinder position to HSV color
             // x, z are in range [-0.5, 0.5], y is in range [0, 1]
-            float hue = fract(atan(a_position.z, a_position.x) / (2.0 * 3.14159265));
+            float hue = fract(0.25 - atan(-a_position.z, a_position.x) / (2.0 * 3.14159265));
             float sat = length(vec2(a_position.x, a_position.z)) * 2.0; // radius 0.5 -> sat 1
             float val = a_position.y; // y from 0 to 1
 
@@ -1649,6 +1598,7 @@ function initCylinder() {
         uniform vec3 u_planePoint;
         uniform vec3 u_planeNormal;
         uniform float u_clipEnabled;
+
         void main() {
             if (u_clipEnabled > 0.5) {
                 float dist = dot(v_position - u_planePoint, u_planeNormal);
@@ -1785,11 +1735,11 @@ function generateCylinderWireframe(segments) {
 // Convert HSV to cylinder position (x, y, z)
 function hsvToCylinderPos(h, s, v) {
     const radius = 0.5;
-    const angle = h * Math.PI * 2;
+    const angle = (0.25 - h) * Math.PI * 2;
     return [
         Math.cos(angle) * s * radius,
         v,
-        Math.sin(angle) * s * radius
+        -Math.sin(angle) * s * radius
     ];
 }
 
@@ -1815,11 +1765,13 @@ function renderCylinder() {
     const view = translationMatrix(0, 0, -cylinderZoom);
     const rotX = rotationXMatrix(cylinderRotationX);
     const rotY = rotationYMatrix(cylinderRotationY);
+    const rotZ = rotationZMatrix(cylinderRotationZ);
     const center = translationMatrix(0, -0.5, 0); // Center vertically
 
     let matrix = multiplyMatrices(proj, view);
-    matrix = multiplyMatrices(matrix, rotY);
     matrix = multiplyMatrices(matrix, rotX);
+    matrix = multiplyMatrices(matrix, rotY);
+    matrix = multiplyMatrices(matrix, rotZ);
     matrix = multiplyMatrices(matrix, center);
 
     // Get HSV values for A and B
@@ -1859,48 +1811,7 @@ function renderCylinder() {
         gl.drawArrays(gl.TRIANGLES, 0, capVertices.length / 3);
     }
 
-    // Draw wireframe
-    gl.useProgram(cylinderProgram);
-
-    const wireframeEdges = generateCylinderWireframe(64);
-    const wireframeColors = [];
-    for (let i = 0; i < wireframeEdges.length; i += 3) {
-        // Color based on position (HSV)
-        const x = wireframeEdges[i];
-        const y = wireframeEdges[i + 1];
-        const z = wireframeEdges[i + 2];
-        let hue = Math.atan2(z, x) / (2 * Math.PI);
-        if (hue < 0) hue += 1;
-        const sat = Math.sqrt(x * x + z * z) * 2;
-        const val = y;
-        const rgb = hsv2rgb(hue, sat, val);
-        wireframeColors.push(rgb[0] / 255, rgb[1] / 255, rgb[2] / 255);
-    }
-
-    const posBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(wireframeEdges), gl.STATIC_DRAW);
-
-    const posLoc = gl.getAttribLocation(cylinderProgram, 'a_position');
-    const colorLoc = gl.getAttribLocation(cylinderProgram, 'a_color');
-    const matrixLoc = gl.getUniformLocation(cylinderProgram, 'u_matrix');
-
-    gl.enableVertexAttribArray(posLoc);
-    gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
-
-    const colorBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(wireframeColors), gl.STATIC_DRAW);
-
-    gl.enableVertexAttribArray(colorLoc);
-    gl.vertexAttribPointer(colorLoc, 3, gl.FLOAT, false, 0, 0);
-
-    gl.uniformMatrix4fv(matrixLoc, false, matrix);
-    gl.drawArrays(gl.LINES, 0, wireframeEdges.length / 3);
-
-    // Draw arc line from A to B
-    gl.depthMask(false);
-
+    // Calculate hue values for T point positioning (arc is now rendered in shader)
     let hueA = hsvA[0];
     let hueB = hsvB[0];
 
@@ -1913,40 +1824,6 @@ function renderCylinder() {
     } else if (hueDirection === 'counter') {
         if (hueB <= hueA) hueB += 1;
     }
-
-    const arcSegments = 64;
-    const arcPositions = [];
-    const arcColors = [];
-
-    for (let i = 0; i <= arcSegments; i++) {
-        const t = i / arcSegments;
-        const h = (hueA + (hueB - hueA) * t) % 1;
-        const s = hsvA[1] + (hsvB[1] - hsvA[1]) * t;
-        const v = hsvA[2] + (hsvB[2] - hsvA[2]) * t;
-
-        const pos = hsvToCylinderPos(h < 0 ? h + 1 : h, s, v);
-        arcPositions.push(...pos);
-
-        const rgb = hsv2rgb(h < 0 ? h + 1 : h, s, v);
-        arcColors.push(rgb[0] / 255, rgb[1] / 255, rgb[2] / 255);
-    }
-
-    const arcPosBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, arcPosBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(arcPositions), gl.STATIC_DRAW);
-    gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
-
-    const arcColorBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, arcColorBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(arcColors), gl.STATIC_DRAW);
-    gl.vertexAttribPointer(colorLoc, 3, gl.FLOAT, false, 0, 0);
-
-    gl.lineWidth(3.0);
-    gl.drawArrays(gl.LINE_STRIP, 0, arcSegments + 1);
-    gl.depthMask(true);
-
-    // Note: No cross-section plane for HSV cylinder - the arc stays on the surface
-    // (unlike RGB cube where the line cuts through the muddy interior)
 
     // Draw points A, B, T
     gl.enable(gl.BLEND);
@@ -2027,6 +1904,7 @@ function renderCylinder() {
     gl.vertexAttribPointer(pointGlowLoc, 1, gl.FLOAT, false, 0, 0);
 
     gl.drawArrays(gl.POINTS, 0, 1);
+
 }
 
 // Cylinder mouse/touch rotation handlers
@@ -2045,6 +1923,8 @@ document.addEventListener('mousemove', (e) => {
         cylinderRotationX += dy * 0.01;
         lastCylinderMouseX = e.clientX;
         lastCylinderMouseY = e.clientY;
+        document.getElementById('cylinderRotX').value = cylinderRotationX;
+        document.getElementById('cylinderRotY').value = cylinderRotationY;
         renderCylinder();
     }
 });
@@ -2087,6 +1967,8 @@ document.addEventListener('touchmove', (e) => {
         cylinderRotationX += dy * 0.01;
         lastCylinderMouseX = e.touches[0].clientX;
         lastCylinderMouseY = e.touches[0].clientY;
+        document.getElementById('cylinderRotX').value = cylinderRotationX;
+        document.getElementById('cylinderRotY').value = cylinderRotationY;
         renderCylinder();
     } else if (e.touches.length === 2 && lastCylinderPinchDistance > 0) {
         const currentDistance = getPinchDistance(e.touches);
@@ -2118,3 +2000,31 @@ update = function() {
 // Initialize and render cylinder
 initCylinder();
 renderCylinder();
+
+// Rotation slider event listeners - Cube
+document.getElementById('cubeRotX').addEventListener('input', (e) => {
+    cubeRotationX = parseFloat(e.target.value);
+    renderCube();
+});
+document.getElementById('cubeRotY').addEventListener('input', (e) => {
+    cubeRotationY = parseFloat(e.target.value);
+    renderCube();
+});
+document.getElementById('cubeRotZ').addEventListener('input', (e) => {
+    cubeRotationZ = parseFloat(e.target.value);
+    renderCube();
+});
+
+// Rotation slider event listeners - Cylinder
+document.getElementById('cylinderRotX').addEventListener('input', (e) => {
+    cylinderRotationX = parseFloat(e.target.value);
+    renderCylinder();
+});
+document.getElementById('cylinderRotY').addEventListener('input', (e) => {
+    cylinderRotationY = parseFloat(e.target.value);
+    renderCylinder();
+});
+document.getElementById('cylinderRotZ').addEventListener('input', (e) => {
+    cylinderRotationZ = parseFloat(e.target.value);
+    renderCylinder();
+});
