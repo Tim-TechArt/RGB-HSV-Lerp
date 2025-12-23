@@ -274,7 +274,7 @@ const fragmentShaderSource = `
             }
         }
 
-        float dotRadius = 0.08;
+        float dotRadius = 0.12;
         float dotBorder = 0.02;
 
         float distA = length(uv - posA);
@@ -318,7 +318,7 @@ const fragmentShaderSource = `
         }
 
         float distT = length(uv - posT);
-        float dotTRadius = 0.1;
+        float dotTRadius = 0.135;
         float dotTMask = smoothstep(dotTRadius, dotTRadius - 0.01, distT);
         float dotTBorder = smoothstep(dotTRadius + dotBorder, dotTRadius + dotBorder - 0.01, distT) - dotTMask;
 
@@ -588,8 +588,8 @@ function checkDotClick(canvas, event) {
     const distT = Math.sqrt((x - posT.x) ** 2 + (y - posT.y) ** 2);
 
     // Dot radii (T is slightly larger)
-    const dotRadius = 0.12;
-    const dotRadiusT = 0.14;
+    const dotRadius = 0.18;
+    const dotRadiusT = 0.19;
 
     // Check T first (it's on top visually)
     if (distT <= dotRadiusT) {
@@ -907,16 +907,14 @@ function initCube() {
             float dist = length(gl_PointCoord - vec2(0.5));
             if (dist > 0.5) discard;
 
-            float alpha = smoothstep(0.5, 0.35, dist);
+            float alpha = smoothstep(0.5, 0.47, dist);
             vec3 finalColor = v_color;
 
-            // Subtle white glow ring for highlighted points
+            // Solid white ring border for highlighted points
             if (v_hasGlow > 0.5) {
-                float ringCenter = 0.42;
-                float ringWidth = 0.08;
-                float glowStrength = 1.0 - smoothstep(0.0, ringWidth, abs(dist - ringCenter));
-                glowStrength *= 0.5;
-                finalColor = mix(v_color, vec3(1.0), glowStrength);
+                float innerRadius = 0.42;
+                float borderMask = smoothstep(innerRadius - 0.01, innerRadius, dist);
+                finalColor = mix(v_color, vec3(1.0), borderMask);
             }
 
             gl_FragColor = vec4(finalColor, alpha);
@@ -1579,15 +1577,14 @@ function initCylinder() {
             float dist = length(gl_PointCoord - vec2(0.5));
             if (dist > 0.5) discard;
 
-            float alpha = smoothstep(0.5, 0.35, dist);
+            float alpha = smoothstep(0.5, 0.47, dist);
             vec3 finalColor = v_color;
 
+            // Solid white ring border for highlighted points
             if (v_hasGlow > 0.5) {
-                float ringCenter = 0.42;
-                float ringWidth = 0.15;
-                float glowStrength = 1.0 - smoothstep(0.0, ringWidth, abs(dist - ringCenter));
-                glowStrength *= 0.85;
-                finalColor = mix(v_color, vec3(1.0), glowStrength);
+                float innerRadius = 0.42;
+                float borderMask = smoothstep(innerRadius - 0.01, innerRadius, dist);
+                finalColor = mix(v_color, vec3(1.0), borderMask);
             }
 
             gl_FragColor = vec4(finalColor, alpha);
