@@ -1395,9 +1395,11 @@ function renderCube() {
     const pointMatrixLoc = gl.getUniformLocation(cubePointProgram, 'u_matrix');
 
     // Points A and B (with depth test)
+    // Scale dot sizes based on canvas size (512 is reference size)
+    const sizeScale = refRect.width / 512;
     const pointsAB_Positions = [...rgbA, ...rgbB];
     const pointsAB_Colors = [...rgbA, ...rgbB];
-    const pointsAB_Sizes = [20.0 * dpr, 20.0 * dpr];
+    const pointsAB_Sizes = [40.0 * dpr * sizeScale, 40.0 * dpr * sizeScale];
     const pointsAB_Glows = [1.0, 1.0];
 
     const abPosBuffer = gl.createBuffer();
@@ -1440,7 +1442,7 @@ function renderCube() {
 
     const tSizeBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, tSizeBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([25.0 * dpr]), gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([50.0 * dpr * sizeScale]), gl.STATIC_DRAW);
     gl.vertexAttribPointer(pointSizeLoc, 1, gl.FLOAT, false, 0, 0);
 
     const tGlowBuffer = gl.createBuffer();
@@ -1916,9 +1918,11 @@ function renderCylinder() {
     const pointMatrixLoc = gl.getUniformLocation(cylinderPointProgram, 'u_matrix');
 
     // Points A and B (with glow to stand out on colorful surface)
+    // Scale dot sizes based on canvas size (512 is reference size)
+    const sizeScale = refRect.width / 512;
     const pointsAB_Positions = [...posA, ...posB];
     const pointsAB_Colors = [...rgbA, ...rgbB];
-    const pointsAB_Sizes = [30.0 * dpr, 30.0 * dpr];
+    const pointsAB_Sizes = [60.0 * dpr * sizeScale, 60.0 * dpr * sizeScale];
     const pointsAB_Glows = [1.0, 1.0];
 
     const abPosBuffer = gl.createBuffer();
@@ -1961,7 +1965,7 @@ function renderCylinder() {
 
     const tSizeBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, tSizeBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([35.0 * dpr]), gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([70.0 * dpr * sizeScale]), gl.STATIC_DRAW);
     gl.vertexAttribPointer(pointSizeLoc, 1, gl.FLOAT, false, 0, 0);
 
     const tGlowBuffer = gl.createBuffer();
