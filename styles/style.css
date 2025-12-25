@@ -326,7 +326,7 @@ canvas {
 	padding-right: 6px;
 	margin-left: 6px; 
 	margin-right: 6px; 
-    font-size: clamp(0.15rem, 2.0vw, 0.9rem);
+    font-size: clamp(0.15rem, 2.21vw, 0.9rem);
     white-space: nowrap;
 }
 
