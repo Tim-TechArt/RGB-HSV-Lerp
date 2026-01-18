@@ -122,6 +122,16 @@
         </div>
     </div>
 
-    <script src="scripts/script.js"></script>
+    <!-- Utility modules (no dependencies) -->
+    <script src="scripts/utils/color.js"></script>
+    <script src="scripts/utils/matrix.js"></script>
+
+    <!-- Renderer modules (depend on utils) -->
+    <script src="scripts/renderers/wheel.js"></script>
+    <script src="scripts/renderers/cube.js"></script>
+    <script src="scripts/renderers/cylinder.js"></script>
+
+    <!-- Main application (depends on all modules) -->
+    <script src="scripts/main.js"></script>
 </body>
 </html>
