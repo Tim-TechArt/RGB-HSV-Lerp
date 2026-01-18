@@ -60,8 +60,9 @@ function lerpRGB(colorA, colorB, t) {
     ];
 }
 
-// Hue direction: 'shortest', 'clockwise', 'counter'
+// Hue direction: 'shortest', 'clockwise', 'counter', 'spiralCW', 'spiralCCW'
 let hueDirection = 'shortest';
+let spiralRevolutions = 1; // Extra revolutions for spiral modes (adjustable with scroll)
 
 function lerpHSV(colorA, colorB, t) {
     const hsvA = rgb2hsv(colorA[0], colorA[1], colorA[2]);
@@ -90,6 +91,18 @@ function lerpHSV(colorA, colorB, t) {
         if (hueB >= hueA) {
             hueA += 1;
         }
+    } else if (hueDirection === 'spiralCW') {
+        // Clockwise with extra revolution
+        if (hueB <= hueA) {
+            hueB += 1;
+        }
+        hueB += spiralRevolutions;
+    } else if (hueDirection === 'spiralCCW') {
+        // Counter-clockwise with extra revolution
+        if (hueB >= hueA) {
+            hueA += 1;
+        }
+        hueA += spiralRevolutions;
     }
 
     let h = lerp(hueA, hueB, t) % 1;
@@ -147,7 +160,8 @@ const fragmentShaderSource = `
     uniform vec3 u_colorB;
     uniform float u_t;
     uniform int u_mode;
-    uniform int u_hueDirection; // 0=shortest, 1=clockwise, 2=counter-clockwise
+    uniform int u_hueDirection; // 0=shortest, 1=clockwise, 2=counter-clockwise, 3=spiralCW, 4=spiralCCW
+    uniform float u_revolutions; // Extra revolutions for spiral modes
 
     #define PI 3.14159265359
 
@@ -228,11 +242,23 @@ const fragmentShaderSource = `
                 if (hueB <= hueA) {
                     hueB += 1.0;
                 }
-            } else {
+            } else if (u_hueDirection == 2) {
                 // Counter-clockwise (decreasing hue on our wheel)
                 if (hueB >= hueA) {
                     hueA += 1.0;
                 }
+            } else if (u_hueDirection == 3) {
+                // Spiral CW (clockwise with extra revolutions)
+                if (hueB <= hueA) {
+                    hueB += 1.0;
+                }
+                hueB += u_revolutions;
+            } else if (u_hueDirection == 4) {
+                // Spiral CCW (counter-clockwise with extra revolutions)
+                if (hueB >= hueA) {
+                    hueA += 1.0;
+                }
+                hueA += u_revolutions;
             }
 
             // Get hue range (ensure minH < maxH)
@@ -242,35 +268,37 @@ const fragmentShaderSource = `
             // Check if current pixel's angle falls within the arc's hue range
             float pointHue = angle;
 
-            // Also check pointHue + 1.0 for wraparound cases
-            float pointHue2 = pointHue + 1.0;
+            // For spiral modes, the path crosses the same hue multiple times
+            // Check all possible positions where this hue appears in the arc
+            // Use fixed loop bound (WebGL 1.0 requires constant bounds)
+            for (int wrap = 0; wrap < 4; wrap++) {
+                float testHue = pointHue + float(wrap);
+                if (testHue >= minH && testHue <= maxH) {
+                    // Calculate t (0-1) along the arc for this position
+                    float arcT = (testHue - minH) / (maxH - minH);
 
-            bool onArc = (pointHue >= minH && pointHue <= maxH) ||
-                         (pointHue2 >= minH && pointHue2 <= maxH);
+                    // Flip if A > B in hue
+                    if (hueA > hueB) arcT = 1.0 - arcT;
 
-            if (onArc) {
-                // Calculate t (0-1) along the arc
-                float useHue = (pointHue >= minH && pointHue <= maxH) ? pointHue : pointHue2;
-                float arcT = (useHue - minH) / (maxH - minH);
+                    // Expected saturation at this hue position
+                    float expectedSat = mix(hsvA.y, hsvB.y, arcT) * wheelScale;
+                    float distToArc = abs(dist - expectedSat);
 
-                // Flip if A > B in hue
-                if (hueA > hueB) arcT = 1.0 - arcT;
+                    // Glow effect - wider, softer
+                    float glowWidth = 0.12;
+                    float thisGlow = smoothstep(glowWidth, 0.0, distToArc) * 0.6;
+                    glowAlpha = max(glowAlpha, thisGlow);
 
-                // Expected saturation at this hue position
-                float expectedSat = mix(hsvA.y, hsvB.y, arcT) * wheelScale;
-                float distToArc = abs(dist - expectedSat);
-
-                // Glow effect - wider, softer
-                float glowWidth = 0.12;
-                glowAlpha = smoothstep(glowWidth, 0.0, distToArc) * 0.6;
-
-                // Main path
-                pathAlpha = smoothstep(pathWidth, pathWidth * 0.3, distToArc);
-
-                float h = mod(mix(hueA, hueB, arcT), 1.0);
-                float s = mix(hsvA.y, hsvB.y, arcT);
-                float v = mix(hsvA.z, hsvB.z, arcT);
-                pathColor = hsv2rgb(vec3(h, s, v));
+                    // Main path
+                    float thisPath = smoothstep(pathWidth, pathWidth * 0.3, distToArc);
+                    if (thisPath > pathAlpha) {
+                        pathAlpha = thisPath;
+                        float h = mod(mix(hueA, hueB, arcT), 1.0);
+                        float s = mix(hsvA.y, hsvB.y, arcT);
+                        float v = mix(hsvA.z, hsvB.z, arcT);
+                        pathColor = hsv2rgb(vec3(h, s, v));
+                    }
+                }
             }
         }
 
@@ -305,9 +333,17 @@ const fragmentShaderSource = `
             } else if (u_hueDirection == 1) {
                 // Clockwise (increasing hue on our wheel)
                 if (hueB2 <= hueA2) hueB2 += 1.0;
-            } else {
+            } else if (u_hueDirection == 2) {
                 // Counter-clockwise (decreasing hue on our wheel)
                 if (hueB2 >= hueA2) hueA2 += 1.0;
+            } else if (u_hueDirection == 3) {
+                // Spiral CW
+                if (hueB2 <= hueA2) hueB2 += 1.0;
+                hueB2 += u_revolutions;
+            } else if (u_hueDirection == 4) {
+                // Spiral CCW
+                if (hueB2 >= hueA2) hueA2 += 1.0;
+                hueA2 += u_revolutions;
             }
 
             float h = mod(mix(hueA2, hueB2, u_t), 1.0);
@@ -402,6 +438,7 @@ function setupWebGL(canvas, mode) {
             t: gl.getUniformLocation(program, 'u_t'),
             mode: gl.getUniformLocation(program, 'u_mode'),
             hueDirection: gl.getUniformLocation(program, 'u_hueDirection'),
+            revolutions: gl.getUniformLocation(program, 'u_revolutions'),
         },
         mode
     };
@@ -427,9 +464,14 @@ function render(ctx, colorA, colorB, t) {
     gl.uniform1f(uniforms.t, t);
     gl.uniform1i(uniforms.mode, mode);
 
-    // Pass hue direction: 0=shortest, 1=clockwise, 2=counter
-    const hueDir = hueDirection === 'clockwise' ? 1 : (hueDirection === 'counter' ? 2 : 0);
+    // Pass hue direction: 0=shortest, 1=clockwise, 2=counter, 3=spiralCW, 4=spiralCCW
+    let hueDir = 0;
+    if (hueDirection === 'clockwise') hueDir = 1;
+    else if (hueDirection === 'counter') hueDir = 2;
+    else if (hueDirection === 'spiralCW') hueDir = 3;
+    else if (hueDirection === 'spiralCCW') hueDir = 4;
     gl.uniform1i(uniforms.hueDirection, hueDir);
+    gl.uniform1f(uniforms.revolutions, spiralRevolutions);
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 }
@@ -559,6 +601,12 @@ function getDotPositions(mode) {
             if (hueB <= hueA) hueB += 1;
         } else if (hueDirection === 'counter') {
             if (hueB >= hueA) hueA += 1;
+        } else if (hueDirection === 'spiralCW') {
+            if (hueB <= hueA) hueB += 1;
+            hueB += spiralRevolutions;
+        } else if (hueDirection === 'spiralCCW') {
+            if (hueB >= hueA) hueA += 1;
+            hueA += spiralRevolutions;
         }
 
         const h = ((hueA + (hueB - hueA) * t) % 1 + 1) % 1;
@@ -637,6 +685,12 @@ function getTFromPosition(canvas, event) {
             if (hueB <= hueA) hueB += 1;
         } else if (hueDirection === 'counter') {
             if (hueB >= hueA) hueA += 1;
+        } else if (hueDirection === 'spiralCW') {
+            if (hueB <= hueA) hueB += 1;
+            hueB += spiralRevolutions;
+        } else if (hueDirection === 'spiralCCW') {
+            if (hueB >= hueA) hueA += 1;
+            hueA += spiralRevolutions;
         }
 
         let pointHue = 0.25 - Math.atan2(y, x) / (2 * Math.PI);
@@ -647,15 +701,17 @@ function getTFromPosition(canvas, event) {
         const minH = Math.min(hueA, hueB);
         const maxH = Math.max(hueA, hueB);
 
-        // Try both pointHue and pointHue + 1
-        let newT;
-        if (pointHue >= minH && pointHue <= maxH) {
-            newT = (pointHue - minH) / (maxH - minH);
-        } else if (pointHue + 1 >= minH && pointHue + 1 <= maxH) {
-            newT = (pointHue + 1 - minH) / (maxH - minH);
-        } else {
-            return t; // Outside arc range
+        // For spiral modes, need to check multiple wraps
+        let newT = null;
+        const totalRevs = Math.ceil(maxH - minH);
+        for (let wrap = 0; wrap <= totalRevs && newT === null; wrap++) {
+            const testHue = pointHue + wrap;
+            if (testHue >= minH && testHue <= maxH) {
+                newT = (testHue - minH) / (maxH - minH);
+            }
         }
+
+        if (newT === null) return t; // Outside arc range
 
         // Flip if A > B
         if (hueA > hueB) newT = 1 - newT;
@@ -750,6 +806,16 @@ function setupCanvasInteraction(canvas) {
 
 setupCanvasInteraction(rgbCanvas);
 setupCanvasInteraction(hsvCanvas);
+
+// Scroll wheel to adjust spiral revolutions
+hsvCanvas.addEventListener('wheel', (e) => {
+    if (hueDirection === 'spiralCW' || hueDirection === 'spiralCCW') {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -1 : 1;
+        spiralRevolutions = Math.max(0, Math.min(3, spiralRevolutions + delta));
+        update();
+    }
+}, { passive: false });
 
 // Global mouse handlers
 document.addEventListener('mousemove', handleDragMove);
@@ -1834,6 +1900,12 @@ function renderCylinder() {
         if (hueB <= hueA) hueB += 1;
     } else if (hueDirection === 'counter') {
         if (hueB >= hueA) hueA += 1;
+    } else if (hueDirection === 'spiralCW') {
+        if (hueB <= hueA) hueB += 1;
+        hueB += spiralRevolutions;
+    } else if (hueDirection === 'spiralCCW') {
+        if (hueB >= hueA) hueA += 1;
+        hueA += spiralRevolutions;
     }
 
     // Draw points A, B, T
