@@ -1789,7 +1789,7 @@ function renderCylinder() {
     const hsvA = rgb2hsv(colorA[0], colorA[1], colorA[2]);
     const hsvB = rgb2hsv(colorB[0], colorB[1], colorB[2]);
 
-    // Draw solid cylinder (no clipping - HSV arc stays on surface, no muddy middle to reveal)
+    // Draw solid cylinder (no clipping - HSV arc stays on surface)
     gl.disable(gl.BLEND);
     if (cylinderSolidProgram) {
         gl.useProgram(cylinderSolidProgram);
