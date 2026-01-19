@@ -322,6 +322,33 @@ body {
     margin-bottom: 20px;
 }
 
+/* Spiral revolutions slider - mobile only */
+.spiral-controls {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    margin-top: -10px;
+    margin-bottom: 10px;
+    padding: 0 4px;
+}
+
+@media (max-width: 800px) {
+    .spiral-controls.visible {
+        display: flex;
+    }
+}
+
+.spiral-controls label {
+    color: var(--gray-text);
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+
+.spiral-controls input[type="range"] {
+    flex: 1;
+    height: 6px;
+}
+
 /* Desktop/Laptop: constrain layout based on viewport height + use compact spacing */
 @media (min-width: 801px) {
     body {

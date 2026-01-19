@@ -69,7 +69,7 @@ window.ColorApp.Color = {};
 
     function lerpHSV(colorA, colorB, t, hueDirection, spiralRevolutions) {
         hueDirection = hueDirection || 'shortest';
-        spiralRevolutions = spiralRevolutions || 1;
+        spiralRevolutions = (spiralRevolutions !== undefined) ? spiralRevolutions : 1;
 
         const hsvA = rgb2hsv(colorA[0], colorA[1], colorA[2]);
         const hsvB = rgb2hsv(colorB[0], colorB[1], colorB[2]);

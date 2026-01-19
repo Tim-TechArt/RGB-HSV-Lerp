@@ -288,7 +288,7 @@ window.ColorApp.Wheel = {};
 
     function renderWheel(ctx, colorA, colorB, t, hueDirection, spiralRevolutions) {
         hueDirection = hueDirection || 'shortest';
-        spiralRevolutions = spiralRevolutions || 1;
+        spiralRevolutions = (spiralRevolutions !== undefined) ? spiralRevolutions : 1;
 
         var gl = ctx.gl;
         var program = ctx.program;

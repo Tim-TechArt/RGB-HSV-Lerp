@@ -265,22 +265,31 @@
             if (pointHue < 0) pointHue += 1;
             if (pointHue >= 1) pointHue -= 1;
 
-            var minH = Math.min(hueA, hueB);
-            var maxH = Math.max(hueA, hueB);
+            var hueRange = hueB - hueA;
 
-            var newT = null;
-            var totalRevs = Math.ceil(maxH - minH);
-            for (var wrap = 0; wrap <= totalRevs && newT === null; wrap++) {
+            // Handle case where hueRange is zero (same hue)
+            if (Math.abs(hueRange) < 0.0001) return t;
+
+            // Find the T value closest to current T among all valid wraps
+            var bestT = null;
+            var bestDist = Infinity;
+            var totalRevs = Math.ceil(Math.abs(hueRange)) + 1;
+
+            for (var wrap = -1; wrap <= totalRevs; wrap++) {
                 var testHue = pointHue + wrap;
-                if (testHue >= minH && testHue <= maxH) {
-                    newT = (testHue - minH) / (maxH - minH);
+                // Calculate what T would give us testHue: h = hueA + hueRange * t => t = (h - hueA) / hueRange
+                var candidateT = (testHue - hueA) / hueRange;
+                if (candidateT >= 0 && candidateT <= 1) {
+                    var dist = Math.abs(candidateT - t);
+                    if (dist < bestDist) {
+                        bestDist = dist;
+                        bestT = candidateT;
+                    }
                 }
             }
 
-            if (newT === null) return t;
-
-            if (hueA > hueB) newT = 1 - newT;
-            return Math.max(0, Math.min(1, newT));
+            if (bestT === null) return t;
+            return Math.max(0, Math.min(1, bestT));
         }
     }
 
@@ -369,6 +378,9 @@
             e.preventDefault();
             var delta = e.deltaY > 0 ? -1 : 1;
             spiralRevolutions = Math.max(0, Math.min(3, spiralRevolutions + delta));
+            // Update slider to match
+            document.getElementById('spiralRevsSlider').value = spiralRevolutions;
+            document.getElementById('spiralRevsValue').textContent = spiralRevolutions;
             update();
         }
     }, { passive: false });
@@ -567,9 +579,34 @@
         update();
     });
 
+    // Spiral revolutions controls
+    var spiralControls = document.getElementById('spiralControls');
+    var spiralRevsSlider = document.getElementById('spiralRevsSlider');
+    var spiralRevsValue = document.getElementById('spiralRevsValue');
+
+    function updateSpiralControlsVisibility() {
+        if (hueDirection === 'spiralCW' || hueDirection === 'spiralCCW') {
+            spiralControls.classList.add('visible');
+        } else {
+            spiralControls.classList.remove('visible');
+        }
+    }
+
+    function updateSpiralSlider() {
+        spiralRevsSlider.value = spiralRevolutions;
+        spiralRevsValue.textContent = spiralRevolutions;
+    }
+
+    spiralRevsSlider.addEventListener('input', function(e) {
+        spiralRevolutions = parseInt(e.target.value);
+        spiralRevsValue.textContent = spiralRevolutions;
+        update();
+    });
+
     document.querySelectorAll('input[name="hueDirection"]').forEach(function(radio) {
         radio.addEventListener('change', function(e) {
             hueDirection = e.target.value;
+            updateSpiralControlsVisibility();
             update();
         });
     });
@@ -662,5 +699,6 @@
 
     update();
     updateHeader();
+    updateSpiralControlsVisibility();
 
 })();
