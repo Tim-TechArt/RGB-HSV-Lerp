@@ -576,17 +576,45 @@
 
     var hueSettingsBtn = document.getElementById('hueSettingsBtn');
     var hueSettingsMenu = document.getElementById('hueSettingsMenu');
+    var settingsOverlay = document.getElementById('settingsOverlay');
+    var sliderFooter = document.querySelector('.slider-footer');
+
+    function isMobile() {
+        return window.innerWidth <= 800;
+    }
+
+    function openSettingsMenu() {
+        hueSettingsMenu.classList.add('open');
+        hueSettingsBtn.classList.add('active');
+        settingsOverlay.classList.add('open');
+        if (isMobile()) {
+            sliderFooter.classList.add('hidden');
+        }
+    }
+
+    function closeSettingsMenu() {
+        hueSettingsMenu.classList.remove('open');
+        hueSettingsBtn.classList.remove('active');
+        settingsOverlay.classList.remove('open');
+        sliderFooter.classList.remove('hidden');
+    }
 
     hueSettingsBtn.addEventListener('click', function(e) {
         e.stopPropagation();
-        hueSettingsMenu.classList.toggle('open');
-        hueSettingsBtn.classList.toggle('active');
+        if (hueSettingsMenu.classList.contains('open')) {
+            closeSettingsMenu();
+        } else {
+            openSettingsMenu();
+        }
+    });
+
+    settingsOverlay.addEventListener('click', function() {
+        closeSettingsMenu();
     });
 
     document.addEventListener('click', function(e) {
         if (!hueSettingsMenu.contains(e.target) && !hueSettingsBtn.contains(e.target)) {
-            hueSettingsMenu.classList.remove('open');
-            hueSettingsBtn.classList.remove('active');
+            closeSettingsMenu();
         }
     });
 

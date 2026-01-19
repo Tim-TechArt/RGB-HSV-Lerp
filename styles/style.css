@@ -250,12 +250,98 @@ body {
     color: var(--teal-bright);
 }
 
+/* Overlay - hidden by default */
+.settings-overlay {
+    display: none;
+}
+
+/* Mobile Bottom Sheet */
+@media (max-width: 800px) {
+    .settings-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 999;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+    }
+
+    .settings-overlay.open {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .settings-menu {
+        display: block;
+        position: fixed;
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        margin-top: 0;
+        border-radius: 16px 16px 0 0;
+        padding: 20px 24px 32px;
+        min-width: unset;
+        width: 100%;
+        z-index: 1000;
+        transform: translateY(100%);
+        transition: transform 0.3s ease;
+    }
+
+    .settings-menu.open {
+        transform: translateY(0);
+    }
+
+    .settings-menu-title {
+        font-size: 0.9rem;
+        margin-bottom: 16px;
+        text-align: center;
+    }
+
+    .settings-menu label {
+        font-size: 1rem;
+        padding: 14px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .settings-menu label:last-child {
+        border-bottom: none;
+    }
+
+    .settings-menu input[type="radio"] {
+        width: 20px;
+        height: 20px;
+    }
+}
+
 .canvas-container {
     position: relative;
     width: 100%;
     max-width: 100%;
     aspect-ratio: 1;
     margin-bottom: 20px;
+}
+
+/* Desktop: limit canvas size so all 4 cards fit in viewport */
+@media (min-width: 801px) {
+    .canvas-container {
+        max-height: 28vh;
+        max-width: 28vh;
+        width: 28vh;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .model-canvas-container canvas {
+        max-height: 24vh;
+        max-width: 24vh;
+        height: 24vh;
+        width: 24vh;
+    }
 }
 
 canvas {
@@ -341,6 +427,11 @@ canvas {
     padding: 1rem 1.5rem 0;
     z-index: 1000;
     backdrop-filter: blur(10px);
+    transition: transform 0.3s ease;
+}
+
+.slider-footer.hidden {
+    transform: translateY(100%);
 }
 
 .slider-footer-content {
