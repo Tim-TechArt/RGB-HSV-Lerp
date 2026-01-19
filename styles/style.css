@@ -105,10 +105,6 @@ body {
         margin-bottom: 10px;
     }
 
-    .wheel-card {
-        padding: 12px;
-    }
-
     .canvas-container {
         margin-bottom: 10px;
     }
@@ -342,10 +338,6 @@ body {
     .method-row {
         gap: 10px;
         margin-bottom: 10px;
-    }
-
-    .wheel-card {
-        padding: 12px;
     }
 
     .wheel-title {
@@ -746,7 +738,7 @@ input[type="range"]::-moz-range-thumb {
     position: relative;
     background: var(--card-bg);
     border-radius: 16px;
-    padding: 30px 30px 12px;
+    padding: 25px 30px 12px;
     border: 1px solid rgba(47, 127, 122, 0.2);
     text-align: left;
     min-width: 0;
@@ -829,10 +821,6 @@ input[type="range"]::-moz-range-thumb {
         margin-bottom: 10px;
     }
 
-    .model-card {
-        padding: 12px;
-    }
-
     .model-hint {
         font-size: 0.65rem;
 		padding-left: 20px;
@@ -864,20 +852,12 @@ input[type="range"]::-moz-range-thumb {
         margin-bottom: 10px;
     }
 
-    .model-card {
-        padding: 12px;
-    }
-
     .model-canvas-container {
         display: block;
         margin-bottom: 0;
     }
 
     .model-hint {
-        display: none;
-    }
-
-    .rotation-controls {
         display: none;
     }
 }
