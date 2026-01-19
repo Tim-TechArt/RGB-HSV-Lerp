@@ -326,21 +326,59 @@ body {
     margin-bottom: 20px;
 }
 
-/* Desktop: limit canvas size so all 4 cards fit in viewport */
+/* Desktop/Laptop: constrain layout based on viewport height + use compact spacing */
 @media (min-width: 801px) {
-    .canvas-container {
-        max-height: 28vh;
-        max-width: 28vh;
-        width: 28vh;
-        margin-left: auto;
-        margin-right: auto;
+    body {
+        padding: 20px 10px;
     }
 
-    .model-canvas-container canvas {
-        max-height: 24vh;
-        max-width: 24vh;
-        height: 24vh;
-        width: 24vh;
+    .container {
+        /* Width based on viewport height - mimics mobile behavior */
+        max-width: min(1200px, calc(100vh - 160px));
+        padding-top: 100px;
+    }
+
+    .wheels-container,
+    .method-row {
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .wheel-card {
+        padding: 12px;
+    }
+
+    .wheel-title {
+        font-size: 0.9rem;
+        margin-bottom: 8px;
+    }
+
+    .canvas-container {
+        margin-bottom: 0;
+    }
+
+    .footer {
+        margin-top: 1.5rem;
+        margin-bottom: 120px;
+        padding: 1rem;
+    }
+
+    .footer h3 {
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .footer p {
+        font-size: 0.8rem;
+    }
+
+    .footer .small {
+        font-size: 0.7rem;
+    }
+
+    .info-card {
+        margin-top: 0;
+        margin-bottom: 6px;
     }
 }
 
@@ -719,6 +757,9 @@ input[type="range"]::-moz-range-thumb {
     position: relative;
     display: flex;
     justify-content: center;
+    width: 100%;
+    max-width: 100%;
+    aspect-ratio: 1;
 }
 
 .model-canvas-container canvas {
@@ -813,5 +854,30 @@ input[type="range"]::-moz-range-thumb {
 
     .footer .small {
         font-size: 0.75rem;
+    }
+}
+
+/* Desktop/Laptop: model section overrides (must come after default .model-container) */
+@media (min-width: 801px) {
+    .model-container {
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .model-card {
+        padding: 12px;
+    }
+
+    .model-canvas-container {
+        display: block;
+        margin-bottom: 0;
+    }
+
+    .model-hint {
+        display: none;
+    }
+
+    .rotation-controls {
+        display: none;
     }
 }
